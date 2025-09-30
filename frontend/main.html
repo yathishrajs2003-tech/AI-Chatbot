@@ -1,0 +1,175 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📄 Document Q&A Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0; padding: 0;
+      background: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+
+    h2 {
+      margin: 20px 0;
+      color: #333;
+    }
+
+    #upload-box {
+      margin: 10px 0;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 600px;
+    }
+
+    #status {
+      font-size: 14px;
+      color: #555;
+      margin-top: 5px;
+    }
+
+    #chat {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      height: 400px;
+      overflow-y: auto;
+      background: #fff;
+      width: 90%;
+      max-width: 600px;
+      margin-top: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .msg {
+      margin: 5px;
+      padding: 10px;
+      border-radius: 12px;
+      max-width: 75%;
+      word-wrap: break-word;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .user {
+      background: #d1e7dd;
+      text-align: right;
+      margin-left: auto;
+    }
+
+    .bot {
+      background: #f8d7da;
+      text-align: left;
+      margin-right: auto;
+    }
+
+    #input-box {
+      margin-top: 10px;
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      gap: 10px;
+    }
+
+    #question {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <h2>📄 Document Q&A Chatbot</h2>
+
+  <div id="upload-box">
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">Upload</button>
+    <p id="status"></p>
+  </div>
+
+  <div id="chat"></div>
+
+  <div id="input-box">
+    <input type="text" id="question" placeholder="Ask a question...">
+    <button onclick="ask()">Send</button>
+  </div>
+
+  <script>
+    async function uploadFile() {
+      let file = document.getElementById("fileInput").files[0];
+      if (!file) {
+        alert("Please select a file first.");
+        return;
+      }
+      let formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        let res = await fetch("http://127.0.0.1:8000/upload", {
+          method: "POST",
+          body: formData
+        });
+        let data = await res.json();
+        document.getElementById("status").innerText = data.message || "File uploaded successfully!";
+      } catch (err) {
+        document.getElementById("status").innerText = "Upload failed!";
+      }
+    }
+
+    async function ask() {
+      let q = document.getElementById("question").value.trim();
+      if (!q) return;
+
+      let chatBox = document.getElementById("chat");
+      chatBox.innerHTML += `<div class="msg user">${q}</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      let formData = new FormData();
+      formData.append("question", q);
+      q = " ";
+      try {
+        let res = await fetch("http://127.0.0.1:8000/ask", {
+          method: "POST",
+          body: formData
+        });
+        let data = await res.json();
+        let answer = data.answer || "No response";
+        chatBox.innerHTML += `<div class="msg bot">${answer}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+      } catch (err) {
+        chatBox.innerHTML += `<div class="msg bot">⚠️ Error fetching answer</div>`;
+      }
+
+      document.getElementById("question").value = "";
+    }
+  </script>
+</body>
+</html> -->

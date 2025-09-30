@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Q&A Assistant</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #000000;
+      color: #ffffff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background: #000000;
+      padding: 12px 20px;
+      border-bottom: 1px solid #333333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Chat Container */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    .message {
+      padding: 24px 0;
+    }
+
+    .message-content {
+      max-width: 768px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      gap: 24px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .user-avatar {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .bot-avatar {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .message-text {
+      flex: 1;
+      line-height: 1.6;
+      color: #ffffff;
+    }
+
+    /* Enhanced Message Formatting */
+    .message-text h1,
+    .message-text h2,
+    .message-text h3,
+    .message-text h4,
+    .message-text h5,
+    .message-text h6 {
+      color: #ffffff;
+      margin: 16px 0 8px 0;
+      font-weight: 600;
+    }
+
+    .message-text h1 { font-size: 1.5em; }
+    .message-text h2 { font-size: 1.3em; }
+    .message-text h3 { font-size: 1.1em; }
+
+    .message-text p {
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    .message-text ul,
+    .message-text ol {
+      margin: 12px 0;
+      padding-left: 20px;
+    }
+
+    .message-text li {
+      margin: 4px 0;
+      line-height: 1.5;
+    }
+
+    .message-text strong {
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .message-text em {
+      font-style: italic;
+      color: #e0e0e0;
+    }
+
+    .message-text blockquote {
+      border-left: 3px solid #4f4f4f;
+      padding-left: 16px;
+      margin: 16px 0;
+      color: #cccccc;
+      font-style: italic;
+    }
+
+    .message-text table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 16px 0;
+      border: 1px solid #4f4f4f;
+    }
+
+    .message-text th,
+    .message-text td {
+      border: 1px solid #4f4f4f;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .message-text th {
+      background: #2f2f2f;
+      font-weight: 600;
+    }
+
+    /* Code Blocks */
+    .message-text pre {
+      background: #1a1a1a;
+      border: 1px solid #4f4f4f;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .message-text code {
+      font-family: 'Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+      font-size: 0.9em;
+    }
+
+    .message-text p code {
+      background: #2f2f2f;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #e0e0e0;
+      border: 1px solid #4f4f4f;
+    }
+
+    /* Copy Button for Code Blocks */
+    .code-block-wrapper {
+      position: relative;
+    }
+
+    .copy-button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #4f4f4f;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 10px;
+      color: #ffffff;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+
+    .code-block-wrapper:hover .copy-button {
+      opacity: 1;
+    }
+
+    .copy-button:hover {
+      background: #6f6f6f;
+    }
+
+    .copy-button.copied {
+      background: #10a37f;
+    }
+
+    /* Links */
+    .message-text a {
+      color: #4a9eff;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-bottom 0.2s;
+    }
+
+    .message-text a:hover {
+      border-bottom: 1px solid #4a9eff;
+    }
+
+    /* Horizontal Rule */
+    .message-text hr {
+      border: none;
+      border-top: 1px solid #4f4f4f;
+      margin: 24px 0;
+    }
+
+    /* Better Typography */
+    .message-text {
+      font-feature-settings: "liga" 1, "kern" 1;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Response Actions */
+    .response-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .bot-message:hover .response-actions {
+      opacity: 1;
+    }
+
+    .action-button {
+      background: transparent;
+      border: 1px solid #4f4f4f;
+      border-radius: 4px;
+      padding: 6px 8px;
+      color: #888888;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .action-button:hover {
+      background: #2f2f2f;
+      color: #ffffff;
+      border-color: #6f6f6f;
+    }
+
+    .action-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .user-message {
+      background: #000000;
+    }
+
+    .bot-message {
+      background: #000000;
+    }
+
+    /* Input Area */
+    .input-area {
+      background: #000000;
+      padding: 20px;
+      border-top: 1px solid #333333;
+    }
+
+    .input-container {
+      max-width: 768px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .input-wrapper {
+      background: #2f2f2f;
+      border-radius: 25px;
+      border: 1px solid #4f4f4f;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      gap: 12px;
+    }
+
+    .attachment-button {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .attachment-button:hover {
+      background: #4f4f4f;
+    }
+
+    .attachment-button input[type=file] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .attachment-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .message-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #ffffff;
+      font-size: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+      resize: none;
+      max-height: 200px;
+      min-height: 24px;
+    }
+
+    .message-input::placeholder {
+      color: #888888;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    }
+
+    .send-button {
+      background: #ffffff;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .send-button:hover:not(:disabled) {
+      background: #e0e0e0;
+    }
+
+    .send-button:disabled {
+      background: #666666;
+      cursor: not-allowed;
+      color: #333333;
+    }
+
+    .send-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .upload-status {
+      position: absolute;
+      top: -30px;
+      left: 0;
+      font-size: 12px;
+      color: #ffffff;
+      background: #000000;
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    /* File Attachment Styles */
+    .file-attachment {
+      background: #2f2f2f;
+      border: 1px solid #4f4f4f;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 300px;
+    }
+
+    .file-icon {
+      width: 24px;
+      height: 24px;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .file-name {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size {
+      color: #888888;
+      font-size: 12px;
+    }
+
+    .file-remove {
+      background: transparent;
+      border: none;
+      color: #888888;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .file-remove:hover {
+      background: #4f4f4f;
+      color: #ffffff;
+    }
+
+    .file-remove-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .attachments-container {
+      max-width: 768px;
+      margin: 0 auto;
+      padding: 0 20px;
+      margin-bottom: 12px;
+    }
+
+    /* Welcome Screen */
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .welcome-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .welcome-title {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #ffffff;
+    }
+
+    .welcome-subtitle {
+      font-size: 16px;
+      color: #888888;
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .example-prompts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .example-prompt {
+      background: #1a1a1a;
+      border: 1px solid #333333;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-align: left;
+    }
+
+    .example-prompt:hover {
+      background: #2a2a2a;
+    }
+
+    .example-prompt h4 {
+      color: #ffffff;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .example-prompt p {
+      color: #888888;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* Loading Animation */
+    .loading {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .loading-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #888888;
+      animation: loading 1.4s ease-in-out infinite both;
+    }
+
+    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes loading {
+      0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Scrollbar */
+    .chat-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-container::-webkit-scrollbar-track {
+      background: #000000;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb {
+      background: #333333;
+      border-radius: 3px;
+    }
+
+    .chat-container::-webkit-scrollbar-thumb:hover {
+      background: #4f4f4f;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .header {
+        padding: 10px 16px;
+      }
+
+      .message-content {
+        padding: 0 16px;
+      }
+
+      .input-area {
+        padding: 16px;
+      }
+
+      .welcome-screen {
+        padding: 20px 16px;
+      }
+
+      .welcome-title {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      🤖 AI CHATBOT
+    </h1>
+  </div>
+
+  <div class="chat-container" id="chatContainer">
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-icon">💬</div>
+      <h2 class="welcome-title">How can I help you today?</h2>
+      <p class="welcome-subtitle">Upload a document and start asking questions about its content. I can help you understand, summarize, and extract information from your documents.</p>
+      
+      <div class="example-prompts">
+        <div class="example-prompt" onclick="setQuestion('What is this document about?')">
+          <h4>📋 Summarize</h4>
+          <p>What is this document about?</p>
+        </div>
+        <div class="example-prompt" onclick="setQuestion('What are the key points mentioned?')">
+          <h4>🔍 Key Points</h4>
+          <p>What are the key points mentioned?</p>
+        </div>
+        <div class="example-prompt" onclick="setQuestion('Can you explain the main concepts?')">
+          <h4>💡 Explain</h4>
+          <p>Can you explain the main concepts?</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="attachments-container" id="attachmentsContainer"></div>
+    <div class="input-container">
+      <div class="upload-status" id="uploadStatus"></div>
+      <div class="input-wrapper">
+        <div class="attachment-button">
+          <input type="file" id="fileInput" accept=".pdf,.txt,.doc,.docx" onchange="uploadFile()">
+          <label for="fileInput">
+            <svg class="attachment-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.5 18A5.5 5.5 0 0 1 2 12.5A5.5 5.5 0 0 1 7.5 7H18a4 4 0 0 1 4 4 4 4 0 0 1-4 4H9.5a2.5 2.5 0 0 1-2.5-2.5A2.5 2.5 0 0 1 9.5 10H17v2H9.41a.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5H18a2 2 0 0 0 2-2 2 2 0 0 0-2-2H7.5A3.5 3.5 0 0 0 4 12.5 3.5 3.5 0 0 0 7.5 16H17v2H7.5z"/>
+            </svg>
+          </label>
+        </div>
+        <textarea 
+          id="messageInput" 
+          class="message-input" 
+          placeholder="Ask Anything" 
+          rows="1"
+          onkeydown="handleKeyDown(event)"
+        ></textarea>
+        <button class="send-button" id="sendButton" onclick="sendMessage()">
+          <svg class="send-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isLoading = false;
+    let hasMessages = false;
+    let attachedFiles = [];
+
+    // Auto-resize textarea
+    const messageInput = document.getElementById('messageInput');
+    messageInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function getFileIcon(fileName) {
+      const extension = fileName.split('.').pop().toLowerCase();
+      switch(extension) {
+        case 'pdf':
+          return `<svg class="file-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8.267 14.68c-.184 0-.308.018-.372.036v1.178c.076.018.171.018.28.018.374 0 .614-.188.614-.614 0-.426-.22-.618-.522-.618zm.476 2.022c-.131.018-.256.018-.365.018v1.308c0 .1-.073.173-.173.173H8c-.1 0-.173-.073-.173-.173V15.56c0-.1.073-.173.173-.173h.876c.611 0 .966.365.966.93 0 .54-.311.905-.098 1.368zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 5.5h1v1h-1v-1zm2 0h1v1h-1v-1zm-2 2h1v1h-1v-1zm2 0h1v1h-1v-1z"/>
+                  </svg>`;
+        case 'doc':
+        case 'docx':
+          return `<svg class="file-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>`;
+        case 'txt':
+          return `<svg class="file-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>`;
+        default:
+          return `<svg class="file-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                  </svg>`;
+      }
+    }
+
+    function addFileAttachment(file) {
+      const attachmentsContainer = document.getElementById('attachmentsContainer');
+      const fileId = 'file-' + Date.now();
+      
+      const fileDiv = document.createElement('div');
+      fileDiv.className = 'file-attachment';
+      fileDiv.id = fileId;
+      
+      fileDiv.innerHTML = `
+        ${getFileIcon(file.name)}
+        <div class="file-info">
+          <div class="file-name">${file.name}</div>
+          <div class="file-size">${formatFileSize(file.size)}</div>
+        </div>
+        <button class="file-remove" onclick="removeFileAttachment('${fileId}')">
+          <svg class="file-remove-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      `;
+      
+      attachmentsContainer.appendChild(fileDiv);
+      attachedFiles.push({id: fileId, file: file});
+    }
+
+    function removeFileAttachment(fileId) {
+      const fileElement = document.getElementById(fileId);
+      if (fileElement) {
+        fileElement.remove();
+        attachedFiles = attachedFiles.filter(f => f.id !== fileId);
+      }
+    }
+
+    async function uploadFile() {
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+      if (!file) {
+        return;
+      }
+
+      // Add file to attachments display
+      addFileAttachment(file);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const statusElement = document.getElementById("uploadStatus");
+      statusElement.textContent = "Uploading...";
+      statusElement.style.display = "block";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+        statusElement.textContent = "✓ Uploaded successfully";
+        
+        // Hide status after 2 seconds
+        setTimeout(() => {
+          statusElement.style.display = "none";
+        }, 2000);
+      } catch (error) {
+        statusElement.textContent = "❌ Upload failed";
+        
+        // Hide status after 3 seconds
+        setTimeout(() => {
+          statusElement.style.display = "none";
+        }, 3000);
+      }
+
+      // Clear the file input
+      fileInput.value = '';
+    }
+
+    function setQuestion(question) {
+      document.getElementById('messageInput').value = question;
+      document.getElementById('messageInput').focus();
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      if (isLoading) return;
+
+      const input = document.getElementById('messageInput');
+      const question = input.value.trim();
+      
+      if (!question) return;
+
+      // Hide welcome screen if first message
+      if (!hasMessages) {
+        document.getElementById('welcomeScreen').style.display = 'none';
+        hasMessages = true;
+      }
+
+      // Add user message and keep it visible
+      const userMessageId = addMessage(question, 'user');
+      
+      // Clear input
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Show loading for bot response (separate message)
+      isLoading = true;
+      const botLoadingId = addMessage('', 'bot', true);
+      updateSendButton();
+
+      const formData = new FormData();
+      formData.append("question", question);
+
+      console.log('Sending request to API...'); // Debug log
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/ask", {
+          method: "POST",
+          body: formData,
+          // Add timeout
+          signal: AbortSignal.timeout(30000) // 30 second timeout
+        });
+        
+        console.log('Response received:', response.status, response.statusText); // Debug log
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data); // Debug log
+        
+        const answer = data.answer || data.response || "No response available in the data.";
+        
+        // Replace ONLY the bot loading message with actual response
+        updateMessage(botLoadingId, answer);
+        
+      } catch (error) {
+        console.error('Detailed Error:', error);
+        
+        let errorMessage = "❌ Error: ";
+        
+        if (error.name === 'TimeoutError') {
+          errorMessage += "Request timed out. The server might be slow or unavailable.";
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage += "Cannot connect to server. Make sure the server is running on http://127.0.0.1:8000";
+        } else if (error.message.includes('NetworkError')) {
+          errorMessage += "Network error. Check your internet connection.";
+        } else {
+          errorMessage += error.message;
+        }
+        
+        updateMessage(botLoadingId, errorMessage);
+      } finally {
+        // Always reset loading state
+        console.log('Resetting loading state...'); // Debug log
+        isLoading = false;
+        updateSendButton();
+      }
+    }
+
+    function addMessage(content, type, isLoading = false) {
+      const chatContainer = document.getElementById('chatContainer');
+      const messageId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${type}-message`;
+      messageDiv.id = messageId;
+      
+      let displayContent;
+      if (isLoading) {
+        displayContent = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>';
+      } else if (type === 'bot') {
+        displayContent = formatBotMessage(content);
+      } else {
+        // For user messages, keep them as plain text
+        displayContent = content;
+      }
+      
+      messageDiv.innerHTML = `
+        <div class="message-content">
+          <div class="avatar ${type}-avatar">
+            ${type === 'user' ? 'U' : 'AI'}
+          </div>
+          <div class="message-text">
+            ${displayContent}
+          </div>
+        </div>
+      `;
+      
+      chatContainer.appendChild(messageDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      
+      // Add response actions for bot messages (but not for loading)
+      if (type === 'bot' && !isLoading && content) {
+        addResponseActions(messageDiv);
+      }
+      
+      return messageId;
+    }
+
+    function formatBotMessage(content) {
+      if (!content) return '';
+      
+      // Configure marked for better parsing
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        sanitize: false,
+        highlight: function(code, lang) {
+          if (lang && Prism.languages[lang]) {
+            return Prism.highlight(code, Prism.languages[lang], lang);
+          }
+          return code;
+        }
+      });
+      
+      // Convert markdown to HTML
+      let html = marked.parse(content);
+      
+      // Wrap code blocks with copy functionality
+      html = html.replace(/<pre><code(?:\s+class="language-(\w+)")?>([\s\S]*?)<\/code><\/pre>/g, (match, lang, code) => {
+        const language = lang || 'text';
+        const decodedCode = code.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+        return `
+          <div class="code-block-wrapper">
+            <button class="copy-button" onclick="copyCode(this, '${btoa(decodedCode)}')">Copy</button>
+            <pre><code class="language-${language}">${code}</code></pre>
+          </div>
+        `;
+      });
+      
+      return html;
+    }
+
+    function addResponseActions(messageDiv) {
+      const messageContent = messageDiv.querySelector('.message-content');
+      const actionsHtml = `
+        <div class="response-actions">
+          <button class="action-button" onclick="copyResponse(this)">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            Copy
+          </button>
+          <button class="action-button" onclick="regenerateResponse(this)">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4c-4.42,0 -7.99,3.58 -7.99,8s3.57,8 7.99,8c3.73,0 6.84,-2.55 7.73,-6h-2.08c-0.82,2.33 -3.04,4 -5.65,4 -3.31,0 -6,-2.69 -6,-6s2.69,-6 6,-6c1.66,0 3.14,0.69 4.22,1.78L13,11h7V4L17.65,6.35z"/>
+            </svg>
+            Regenerate
+          </button>
+        </div>
+      `;
+      messageContent.insertAdjacentHTML('beforeend', actionsHtml);
+    }
+
+    function copyCode(button, encodedCode) {
+      const code = atob(encodedCode);
+      navigator.clipboard.writeText(code).then(() => {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function copyResponse(button) {
+      const messageText = button.closest('.message').querySelector('.message-text');
+      const text = messageText.textContent || messageText.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = button.innerHTML;
+        button.innerHTML = `
+          <svg class="action-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+          </svg>
+          Copied!
+        `;
+        setTimeout(() => {
+          button.innerHTML = originalText;
+        }, 2000);
+      });
+    }
+
+    function regenerateResponse(button) {
+      if (isLoading) return; // Prevent multiple regenerations
+      
+      // This would typically resend the last question
+      // For now, just show a placeholder
+      const messageText = button.closest('.message').querySelector('.message-text');
+      const originalContent = messageText.innerHTML;
+      
+      isLoading = true;
+      updateSendButton();
+      
+      messageText.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>';
+      
+      // Simulate regeneration (you can connect this to your actual API)
+      setTimeout(() => {
+        messageText.innerHTML = originalContent;
+        isLoading = false;
+        updateSendButton();
+      }, 2000);
+    }
+
+    function updateMessage(messageId, content) {
+  console.log('Updating message ID:', messageId, 'with content:', content.substring(0, 50)); // Debug log
+  
+  const message = document.getElementById(messageId);
+  if (!message) {
+    console.error('Message not found:', messageId);
+    return;
+  }
+  
+  // Make sure we're only updating bot messages
+  if (!message.classList.contains('bot-message')) {
+    console.error('Attempted to update non-bot message:', messageId);
+    return;
+  }
+
+  const messageText = message.querySelector('.message-text');
+  if (messageText) {
+    // Clear any existing content including loading animation
+    messageText.innerHTML = '';
+    
+    // Add the formatted content
+    messageText.innerHTML = formatBotMessage(content);
+    
+    // Only add response actions for bot messages with actual content
+    if (message.classList.contains('bot-message') && content.trim()) {
+      // Remove any existing response actions first
+      const existingActions = message.querySelector('.response-actions');
+      if (existingActions) {
+        existingActions.remove();
+      }
+      
+      // Add response actions after updating
+      setTimeout(() => {
+        addResponseActions(message);
+      }, 100);
+    }
+    
+    // Re-apply syntax highlighting
+    if (typeof Prism !== 'undefined') {
+      Prism.highlightAllUnder(messageText);
+    }
+    
+    // Scroll to bottom
+    const chatContainer = document.getElementById('chatContainer');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+}
+
+    function updateSendButton() {
+      const sendButton = document.getElementById('sendButton');
+      const messageInput = document.getElementById('messageInput');
+      
+      if (sendButton) {
+        sendButton.disabled = isLoading;
+        console.log('Send button disabled:', isLoading); // Debug log
+      }
+      
+      if (messageInput && isLoading) {
+        messageInput.disabled = true;
+      } else if (messageInput) {
+        messageInput.disabled = false;
+      }
+    }
+
+    // Initialize
+    updateSendButton();
+  </script>
+</body>
+</html>
